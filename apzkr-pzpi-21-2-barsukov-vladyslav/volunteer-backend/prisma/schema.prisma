@@ -1,0 +1,195 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// MODELS
+model User {
+  userId        Int            @id @default(autoincrement())
+  email         String         @db.VarChar(50)
+  password      String
+  role          RoleEnum
+  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now())
+  Volunteer     Volunteer?
+  Administrator Administrator?
+  Victim        Victim?
+}
+
+model Volunteer {
+  volunteerId Int        @id @default(autoincrement())
+  userId      Int        @unique
+  name        String     @db.VarChar(25)
+  surname     String     @db.VarChar(25)
+  gender      GenderEnum
+  dateOfBirth DateTime?  @db.Date
+  phoneNumber String?    @db.VarChar(10)
+  city        String?    @db.VarChar(50)
+  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime   @default(now())
+
+  user                   User                     @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  VolunteerQualification VolunteerQualification[]
+  VolunteerDepartment    VolunteerDepartment[]
+}
+
+model VolunteerQualification {
+  volunteerQualificationId Int @id @default(autoincrement())
+  volunteerId              Int
+  qualificationId          Int
+
+  volunteer     Volunteer     @relation(fields: [volunteerId], references: [volunteerId], onDelete: Cascade)
+  qualification Qualification @relation(fields: [qualificationId], references: [qualificationId], onDelete: Cascade)
+}
+
+model VolunteerDepartment {
+  volunteerDepartmentId Int @id @default(autoincrement())
+  volunteerId           Int
+  departmentId          Int
+
+  volunteer  Volunteer  @relation(fields: [volunteerId], references: [volunteerId], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [departmentId], onDelete: Cascade)
+}
+
+model Qualification {
+  qualificationId        Int                      @id @default(autoincrement())
+  nameOfQualification    String                   @db.VarChar(25)
+  description            String?                  @db.VarChar(50)
+  updatedAt              DateTime                 @updatedAt
+  createdAt              DateTime                 @default(now())
+  VolunteerQualification VolunteerQualification[]
+}
+
+model Administrator {
+  adminId     Int        @id @default(autoincrement())
+  userId      Int        @unique
+  name        String     @db.VarChar(25)
+  surname     String     @db.VarChar(25)
+  gender      GenderEnum
+  dateOfBirth DateTime?  @db.Date
+  phoneNumber String?    @db.VarChar(10)
+  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime   @default(now())
+
+  user                    User                      @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  AdministratorDepartment AdministratorDepartment[]
+}
+
+model AdministratorDepartment {
+  adminDepartmentId Int @id @default(autoincrement())
+  adminId           Int
+  departmentId      Int
+
+  admin      Administrator @relation(fields: [adminId], references: [adminId], onDelete: Cascade)
+  department Department    @relation(fields: [departmentId], references: [departmentId], onDelete: Cascade)
+}
+
+model Victim {
+  victimId    Int        @id @default(autoincrement())
+  userId      Int        @unique
+  name        String     @db.VarChar(25)
+  surname     String     @db.VarChar(25)
+  gender      GenderEnum
+  dateOfBirth DateTime?  @db.Date
+  phoneNumber String?    @db.VarChar(10)
+  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime   @default(now())
+
+  user      User        @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  Statement Statement[]
+}
+
+model Department {
+  departmentId            Int                       @id @default(autoincrement())
+  nameOfDepartment        String                    @db.VarChar(25)
+  description             String?                   @db.VarChar(50)
+  phoneNumber             String?                   @db.VarChar(10)
+  updatedAt               DateTime                  @updatedAt
+  createdAt               DateTime                  @default(now())
+  VolunteerDepartment     VolunteerDepartment[]
+  AdministratorDepartment AdministratorDepartment[]
+  Statement               Statement[]
+  DepartmentResource      DepartmentResource[]
+}
+
+model DepartmentResource {
+  departmentResourceId Int @id @default(autoincrement())
+  resourceId           Int
+  departmentId         Int
+
+  resource   Resource   @relation(fields: [resourceId], references: [resourceId], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [departmentId], onDelete: Cascade)
+}
+
+model Resource {
+  resourceId        Int      @id @default(autoincrement())
+  nameOfResource    String   @db.VarChar(25)
+  typeOfResourceId  Int?
+  numberOfResources Int      @default(0)
+  updatedAt         DateTime @updatedAt
+  createdAt         DateTime @default(now())
+
+  typeOfResource     TypeOfResource?      @relation(fields: [typeOfResourceId], references: [typeOfResourceId], onDelete: SetNull)
+  DepartmentResource DepartmentResource[]
+}
+
+model TypeOfResource {
+  typeOfResourceId Int        @id @default(autoincrement())
+  nameOfType       String     @db.VarChar(25)
+  description      String?    @db.VarChar(50)
+  updatedAt        DateTime   @updatedAt
+  createdAt        DateTime   @default(now())
+  Resource         Resource[]
+}
+
+model Statement {
+  statementId  Int           @id @default(autoincrement())
+  victimId     Int
+  departmentId Int
+  topic        String        @db.VarChar(15)
+  text         String        @db.Text
+  status       StatementEnum @default(OPEN)
+  feedback     String?       @db.VarChar(100)
+  city         String?       @db.VarChar(50)
+  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime      @default(now())
+
+  victim           Victim             @relation(fields: [victimId], references: [victimId], onDelete: Cascade)
+  department       Department         @relation(fields: [departmentId], references: [departmentId], onDelete: Cascade)
+  StatementMessage StatementMessage[]
+}
+
+model StatementMessage {
+  messageId   Int      @id @default(autoincrement())
+  statementId Int
+  text        String   @db.VarChar(200)
+  isVictim    Boolean
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  statement Statement @relation(fields: [statementId], references: [statementId], onDelete: Cascade)
+}
+
+// ENUMS
+enum RoleEnum {
+  ADMINISTRATOR
+  VOLUNTEER
+  VICTIM
+}
+
+enum GenderEnum {
+  MALE
+  FEMALE
+}
+
+enum StatementEnum {
+  OPEN
+  PROCESS
+  PAUSED
+  CLOSED
+}
